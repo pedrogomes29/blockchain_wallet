@@ -279,6 +279,11 @@ func (wallet *Wallet) savePrivateKey(walletName string) error {
 	}
 
 	filePath := filepath.Join(walletDir, walletName+".json")
+
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		return fmt.Errorf("wallet already exists: %v", filePath)
+	}
+
 	err = os.WriteFile(filePath, jsonData, 0600)
 	if err != nil {
 		return fmt.Errorf("error saving private key to file: %v", err)
