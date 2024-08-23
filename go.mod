@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
-	github.com/pedrogomes29/blockchain_node v0.0.0-20240816132121-0d153f67114f
+	github.com/pedrogomes29/blockchain_node v0.0.0-20240823212850-73a36d1a520b
 	github.com/spf13/cobra v1.8.1
 )
 
@@ -13,5 +13,5 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
 )

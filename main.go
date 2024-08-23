@@ -8,8 +8,7 @@ import (
 )
 
 func main() {
-	serverURL := "http://localhost:8080"
-	cliApp := cli.NewCLI(serverURL)
+	cliApp := cli.NewCLI()
 
 	rootCmd := cliApp.NewRootCmd()
 

@@ -24,7 +24,6 @@ import (
 
 const walletDir = "wallets"
 
-
 type Wallet struct {
 	privateKey ecdsa.PrivateKey
 	serverURL  string
@@ -103,10 +102,10 @@ func (wallet *Wallet) generateTxToAddress(toAddress string, amount int) *transac
 
 		for _, out := range outs {
 			input := transactions.TXInput{
-				Txid:     txHash,
-				OutIndex: out,
+				Txid:      txHash,
+				OutIndex:  out,
 				Signature: nil,
-				PubKey:   wallet.PublicKey(),
+				PubKey:    wallet.PublicKey(),
 			}
 			inputs = append(inputs, input)
 			inputIdxsToSign[len(inputs)-1] = struct{}{}
@@ -128,21 +127,19 @@ func (wallet *Wallet) generateTxToAddress(toAddress string, amount int) *transac
 	}
 
 	transaction := &transactions.Transaction{
-		ID:         nil,
 		Vin:        inputs,
 		Vout:       outputs,
 		IsCoinbase: false,
 	}
-	transaction.ID = transaction.Hash()
 
 	wallet.SignTransactionInputs(transaction, inputIdxsToSign)
 
 	return transaction
 }
 
-func (wallet *Wallet) SendToAddress(toAddress string, amount int) {
+func (wallet *Wallet) SendToAddress(toAddress string, amount int) error {
 	tx := wallet.generateTxToAddress(toAddress, amount)
-	wallet.sendTransaction(tx)
+	return wallet.sendTransaction(tx)
 }
 
 func (wallet *Wallet) GetBalance() int {
@@ -171,7 +168,7 @@ func (wallet *Wallet) SignTransactionInputs(tx *transactions.Transaction, inputI
 
 func (wallet *Wallet) findUTXOs(pubKeyHash []byte) ([]transactions.TXOutput, error) {
 	pubKeyHashStr := hex.EncodeToString(pubKeyHash)
-	url := fmt.Sprintf("%s/utxos?pubKeyHash=%s", wallet.serverURL, pubKeyHashStr)
+	url := fmt.Sprintf("%s/wallet/utxos?pubKeyHash=%s", wallet.serverURL, pubKeyHashStr)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -193,7 +190,7 @@ func (wallet *Wallet) findUTXOs(pubKeyHash []byte) ([]transactions.TXOutput, err
 func (wallet *Wallet) findSpendableUTXOs(pubKeyHash []byte, amount int) (int, map[string][]int, error) {
 	pubKeyHashStr := hex.EncodeToString(pubKeyHash)
 	amountStr := strconv.Itoa(amount)
-	url := fmt.Sprintf("%s/spendable_utxos?pubKeyHash=%s&amount=%s", wallet.serverURL, pubKeyHashStr, amountStr)
+	url := fmt.Sprintf("%s/wallet/spendable_utxos?pubKeyHash=%s&amount=%s", wallet.serverURL, pubKeyHashStr, amountStr)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -206,8 +203,8 @@ func (wallet *Wallet) findSpendableUTXOs(pubKeyHash []byte, amount int) (int, ma
 	}
 
 	var result struct {
-		Total     int               `json:"total"`
-		Spendable map[string][]int  `json:"spendable"`
+		Total     int              `json:"total"`
+		Spendable map[string][]int `json:"spendable"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return 0, nil, fmt.Errorf("error decoding server response: %v", err)
@@ -217,7 +214,7 @@ func (wallet *Wallet) findSpendableUTXOs(pubKeyHash []byte, amount int) (int, ma
 }
 
 func (wallet *Wallet) sendTransaction(tx *transactions.Transaction) error {
-	url := fmt.Sprintf("%s/transaction", wallet.serverURL)
+	url := fmt.Sprintf("%s/wallet/transactions", wallet.serverURL)
 	data, err := json.Marshal(tx)
 	if err != nil {
 		return fmt.Errorf("error marshalling transaction: %v", err)
@@ -237,27 +234,25 @@ func (wallet *Wallet) sendTransaction(tx *transactions.Transaction) error {
 	return nil
 }
 
-func encodePrivateKey(privateKey *ecdsa.PrivateKey) (string, error){
-    x509Encoded, err := x509.MarshalECPrivateKey(privateKey)
-	if err!=nil{
-		return "",err
+func encodePrivateKey(privateKey *ecdsa.PrivateKey) (string, error) {
+	x509Encoded, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return "", err
 	}
-    pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 
-
-    return string(pemEncoded),nil
+	return string(pemEncoded), nil
 }
 
-func decodePrivateKey(pemEncoded string) (*ecdsa.PrivateKey,error) {
-    block, _ := pem.Decode([]byte(pemEncoded))
-    x509Encoded := block.Bytes
-    privateKey, err := x509.ParseECPrivateKey(x509Encoded)
-	if err!=nil{
-		return nil,err
+func decodePrivateKey(pemEncoded string) (*ecdsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(pemEncoded))
+	x509Encoded := block.Bytes
+	privateKey, err := x509.ParseECPrivateKey(x509Encoded)
+	if err != nil {
+		return nil, err
 	}
-    return privateKey,nil
+	return privateKey, nil
 }
-
 
 func (wallet *Wallet) savePrivateKey(walletName string) error {
 	privateKeyStr, err := encodePrivateKey(&wallet.privateKey)

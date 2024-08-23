@@ -12,21 +12,30 @@ import (
 
 type CLI struct {
 	rpcEndpoint string
-	walletObj *wallet.Wallet
+	walletObj   *wallet.Wallet
 }
 
-func NewCLI(rpcEndpoint string) *CLI {
-	cli := &CLI{
-		rpcEndpoint: rpcEndpoint,
-	}
+func NewCLI() *CLI {
+	cli := &CLI{}
+	fmt.Println("Welcome to the wallet CLI!")
+	cli.askForRPCEndpoint()
 	cli.initializeWallet()
 	return cli
 }
 
-func (cli *CLI) initializeWallet() {
-	fmt.Println("Welcome to the wallet CLI!")
-	fmt.Print("Do you want to create a new wallet or use an existing one? (new/existing): ")
+func (cli *CLI) askForRPCEndpoint() {
+	fmt.Print("Enter the RPC endpoint: ")
+	var endpoint string
+	fmt.Scanln(&endpoint)
 
+	endpoint = strings.TrimSpace(endpoint)
+	cli.rpcEndpoint = endpoint
+
+	fmt.Printf("Using RPC endpoint: %s\n", cli.rpcEndpoint)
+}
+
+func (cli *CLI) initializeWallet() {
+	fmt.Print("Do you want to create a new wallet or use an existing one? (new/existing): ")
 	var choice string
 	fmt.Scanln(&choice)
 	choice = strings.TrimSpace(choice)
@@ -125,6 +134,9 @@ func (cli *CLI) sendCoins() {
 		log.Fatalf("Invalid amount: %v", err)
 	}
 
-	cli.walletObj.SendToAddress(toAddress, amount)
+	err = cli.walletObj.SendToAddress(toAddress, amount)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Printf("Sent %d BTC to %s\n", amount, toAddress)
 }
